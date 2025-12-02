@@ -1,0 +1,1 @@
+ALTER TABLE "player_challenges" ADD COLUMN "checked_in_at" timestamp DEFAULT now() NOT NULL;

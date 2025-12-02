@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1764620966912,
+      "tag": "0000_white_agent_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764625220939,
+      "tag": "0001_naive_tomorrow_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764626174968,
+      "tag": "0002_rapid_grandmaster",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764703902514,
+      "tag": "0003_small_whirlwind",
+      "breakpoints": true
+    }
+  ]
+}
