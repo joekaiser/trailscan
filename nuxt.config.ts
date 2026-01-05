@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 export default defineNuxtConfig({
   devtools: { enabled: true },
 
+  devServer: {
+    host: '0.0.0.0', // Listen on all network interfaces
+    port: 3000, // Optional: specify a port (default is 3000)
+  },
+
   alias: {
     "~server": fileURLToPath(new URL("./server", import.meta.url)),
   },

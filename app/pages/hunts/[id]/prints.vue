@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { Challenge } from "~server/db/schema";
 import QRCode from "qrcode";
+
+import type { Challenge } from "~server/db/schema";
 
 const { id } = useRoute().params;
 const shortCode = id as string;
@@ -14,7 +15,7 @@ const qrCodeDataUrls = ref<Record<number, string>>({});
 // QR code for the start page
 const startPageQrCode = ref<string>("");
 
-const generateQRCode = async (challenge: Challenge) => {
+async function generateQRCode(challenge: Challenge) {
   if (qrCodeDataUrls.value[challenge.id]) {
     return qrCodeDataUrls.value[challenge.id];
   }
@@ -32,13 +33,14 @@ const generateQRCode = async (challenge: Challenge) => {
 
     qrCodeDataUrls.value[challenge.id] = dataUrl;
     return dataUrl;
-  } catch (error) {
+  }
+  catch (error) {
     console.error("Error generating QR code:", error);
     return "";
   }
-};
+}
 
-const generateStartPageQRCode = async () => {
+async function generateStartPageQRCode() {
   if (startPageQrCode.value || !hunt.value) {
     return startPageQrCode.value;
   }
@@ -56,11 +58,21 @@ const generateStartPageQRCode = async () => {
 
     startPageQrCode.value = dataUrl;
     return dataUrl;
-  } catch (error) {
+  }
+  catch (error) {
     console.error("Error generating start page QR code:", error);
     return "";
   }
-};
+}
+
+// Split challenges into regular and bonus
+const regularChallenges = computed(() => {
+  return challenges.value?.filter(c => !c.isBonus) ?? [];
+});
+
+const bonusChallenges = computed(() => {
+  return challenges.value?.filter(c => c.isBonus) ?? [];
+});
 
 // Generate QR codes for all challenges when they're loaded (client-side only)
 watch(challenges, async (newChallenges) => {
@@ -86,6 +98,7 @@ onMounted(async () => {
   }
 });
 </script>
+
 a
 <template>
   <div class="container mx-auto p-4 max-w-6xl">
@@ -96,7 +109,9 @@ a
     </section>
     <section v-else-if="huntError || challengesError">
       <div class="py-8 text-center">
-        <p class="text-destructive">{{ huntError?.message || challengesError?.message }}</p>
+        <p class="text-destructive">
+          {{ huntError?.message || challengesError?.message }}
+        </p>
       </div>
     </section>
     <section v-else-if="hunt" class="space-y-6">
@@ -121,7 +136,7 @@ a
         <CardContent>
           <div class="flex flex-col items-center space-y-3 p-4">
             <div v-if="startPageQrCode" class="flex-shrink-0 border rounded-lg p-4">
-              <img :src="startPageQrCode" alt="QR code for start page" class="w-full max-w-[300px] h-auto" />
+              <img :src="startPageQrCode" alt="QR code for start page" class="w-full max-w-[300px] h-auto">
             </div>
             <div v-else class="flex items-center justify-center w-[300px] h-[300px] bg-muted">
               <Spinner />
@@ -130,19 +145,55 @@ a
         </CardContent>
       </Card>
 
-      <!-- QR Codes Grid -->
+      <!-- Regular Challenges QR Codes -->
       <div v-if="!challenges || challenges.length === 0" class="py-8 text-center text-muted-foreground">
         <p>No challenges yet. Create challenges first to generate QR codes.</p>
       </div>
-      <div v-else class="grid grid-cols-3 gap-6">
-        <div v-for="challenge in challenges" :key="challenge.id" class="flex flex-col items-center space-y-3 p-4 ">
-          <p class="text-center  text-sm">Step {{ (challenge.order ?? 0) + 1 }}: {{ challenge.name }}</p>
-          <div v-if="qrCodeDataUrls[challenge.id]" class="flex-shrink-0 border rounded-lg p-4">
-            <img :src="qrCodeDataUrls[challenge.id]" :alt="`QR code for ${challenge.name}`"
-              class="w-full max-w-[300px] h-auto" />
+      <div v-else>
+        <!-- Regular Challenges -->
+        <div v-if="regularChallenges.length > 0" class="mb-8">
+          <h2 class="text-xl font-semibold mb-4">
+            Regular Challenges
+          </h2>
+          <div class="grid grid-cols-3 gap-6">
+            <div v-for="challenge in regularChallenges" :key="challenge.id"
+              class="flex flex-col items-center space-y-3 p-4">
+              <p class="text-center text-sm">
+                Step {{ (challenge.order ?? 0) + 1 }}: {{ challenge.name }}
+              </p>
+              <div v-if="qrCodeDataUrls[challenge.id]" class="flex-shrink-0 border rounded-lg p-4">
+                <img :src="qrCodeDataUrls[challenge.id]" :alt="`QR code for ${challenge.name}`"
+                  class="w-full max-w-[300px] h-auto">
+              </div>
+              <div v-else class="flex items-center justify-center w-[300px] h-[300px] bg-muted">
+                <Spinner />
+              </div>
+            </div>
           </div>
-          <div v-else class="flex items-center justify-center w-[300px] h-[300px] bg-muted">
-            <Spinner />
+        </div>
+
+        <!-- Bonus Codes -->
+        <div v-if="bonusChallenges.length > 0" class="mt-8">
+          <h2 class="text-xl font-semibold mb-4">
+            Bonus Codes
+          </h2>
+          <div class="grid grid-cols-3 gap-6">
+            <div v-for="challenge in bonusChallenges" :key="challenge.id"
+              class="flex flex-col items-center space-y-3 p-4">
+              <div class="flex items-center gap-2">
+                <Icon name="mdi:star" size="20" class="text-yellow-500" />
+                <p class="text-center text-sm font-semibold">
+                  BONUS: {{ challenge.name }}
+                </p>
+              </div>
+              <div v-if="qrCodeDataUrls[challenge.id]" class="flex-shrink-0 border-2 border-yellow-500 rounded-lg p-4">
+                <img :src="qrCodeDataUrls[challenge.id]" :alt="`QR code for ${challenge.name}`"
+                  class="w-full max-w-[300px] h-auto">
+              </div>
+              <div v-else class="flex items-center justify-center w-[300px] h-[300px] bg-muted">
+                <Spinner />
+              </div>
+            </div>
           </div>
         </div>
       </div>

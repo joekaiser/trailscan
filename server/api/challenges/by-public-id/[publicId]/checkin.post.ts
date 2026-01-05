@@ -1,6 +1,7 @@
-import { eq, and, count, desc } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
+
 import { db } from "~server/db";
-import { challenges, players, playerChallenges } from "~server/db/schema";
+import { challenges, playerChallenges, players } from "~server/db/schema";
 
 export default defineEventHandler(async (event) => {
   const params = getRouterParams(event);
@@ -9,7 +10,7 @@ export default defineEventHandler(async (event) => {
   // Get player info from cookie
   const cookies = parseCookies(event);
   let playerData: { huntId: number; playerId: number; playerName: string } | null = null;
-  
+
   // Try to find player cookie - need to check all possible hunt cookies
   // Since we don't know the huntId yet, we'll get it from the challenge first
   const challenge = await db
@@ -47,10 +48,11 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    playerData = typeof playerCookieValue === 'string' 
-      ? JSON.parse(playerCookieValue) 
+    playerData = typeof playerCookieValue === "string"
+      ? JSON.parse(playerCookieValue)
       : playerCookieValue;
-  } catch (e) {
+  }
+  catch {
     throw createError({
       statusCode: 401,
       statusMessage: "Invalid player cookie",
@@ -87,8 +89,8 @@ export default defineEventHandler(async (event) => {
     .where(
       and(
         eq(playerChallenges.playerId, playerData.playerId),
-        eq(playerChallenges.currentChallengeId, challengeData.id)
-      )
+        eq(playerChallenges.currentChallengeId, challengeData.id),
+      ),
     )
     .limit(1);
 
@@ -103,39 +105,43 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  // Check if player is checking in out of order
-  // Get all challenges the player has checked into, ordered by challenge order
-  const playerCheckins = await db
-    .select({
-      challengeId: playerChallenges.currentChallengeId,
-      challengeOrder: challenges.order,
-    })
-    .from(playerChallenges)
-    .innerJoin(challenges, eq(playerChallenges.currentChallengeId, challenges.id))
-    .where(eq(playerChallenges.playerId, playerData.playerId))
-    .orderBy(desc(challenges.order))
-    .limit(1);
+  // Skip order validation for bonus codes - they can be scanned at any time
+  if (!(challengeData as { isBonus?: boolean }).isBonus) {
+    // Check if player is checking in out of order
+    // Get all challenges the player has checked into, ordered by challenge order
+    const playerCheckins = await db
+      .select({
+        challengeId: playerChallenges.currentChallengeId,
+        challengeOrder: challenges.order,
+      })
+      .from(playerChallenges)
+      .innerJoin(challenges, eq(playerChallenges.currentChallengeId, challenges.id))
+      .where(eq(playerChallenges.playerId, playerData.playerId))
+      .orderBy(desc(challenges.order))
+      .limit(1);
 
-  // If player has checked in before, verify order
-  if (playerCheckins && playerCheckins.length > 0) {
-    const highestOrder = playerCheckins[0].challengeOrder ?? 0;
-    const currentChallengeOrder = challengeData.order ?? 0;
+    // If player has checked in before, verify order
+    if (playerCheckins && playerCheckins.length > 0) {
+      const highestOrder = playerCheckins[0].challengeOrder ?? 0;
+      const currentChallengeOrder = challengeData.order ?? 0;
 
-    // Check if this challenge is the next one (order should be highestOrder + 1)
-    if (currentChallengeOrder !== highestOrder + 1) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: "You scanned the incorrect code. Please scan challenges in order.",
-      });
+      // Check if this challenge is the next one (order should be highestOrder + 1)
+      if (currentChallengeOrder !== highestOrder + 1) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: "You scanned the incorrect code. Please scan challenges in order.",
+        });
+      }
     }
-  } else {
-    // First check-in - verify it's the first challenge (order 0)
-    const currentChallengeOrder = challengeData.order ?? 0;
-    if (currentChallengeOrder !== 0) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: "You scanned the incorrect code. Please scan challenges in order.",
-      });
+    else {
+      // First check-in - verify it's the first challenge (order 0)
+      const currentChallengeOrder = challengeData.order ?? 0;
+      if (currentChallengeOrder !== 0) {
+        throw createError({
+          statusCode: 400,
+          statusMessage: "You scanned the incorrect code. Please scan challenges in order.",
+        });
+      }
     }
   }
 
@@ -147,13 +153,24 @@ export default defineEventHandler(async (event) => {
 
   const position = (checkinCount[0]?.count ?? 0) + 1;
 
-  // Calculate points: 10, 9, 8, 7, 6, then 5 for everyone else
-  let pointsAwarded = 5;
-  if (position === 1) pointsAwarded = 10;
-  else if (position === 2) pointsAwarded = 9;
-  else if (position === 3) pointsAwarded = 8;
-  else if (position === 4) pointsAwarded = 7;
-  else if (position === 5) pointsAwarded = 6;
+  let pointsAwarded = 10;
+
+  // 1% chance you get an extra 3 points
+  // 2% chance you get an extra point
+  // .5% chance you lose 1 point
+
+  // these stack
+
+  const random = Math.random();
+  if (random < 0.01) {
+    pointsAwarded += 2;
+  }
+  if (random < 0.03) {
+    pointsAwarded += 1;
+  }
+  if (random < 0.005) {
+    pointsAwarded -= 1;
+  }
 
   // Create check-in record
   await db.insert(playerChallenges).values({
@@ -176,4 +193,3 @@ export default defineEventHandler(async (event) => {
     position,
   };
 });
-

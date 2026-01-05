@@ -1,9 +1,9 @@
 import type { Challenge, Hunt } from "~server/db/schema";
+
 const KEYS = {
   DETAIL: (shortCode: string, challengeId: number) => `challenges-${shortCode}-${challengeId}`,
   LIST: (shortCode: string) => `challenges-${shortCode}-list`,
 };
-
 
 export default function useChallengesApi() {
   async function getById(shortCode: string, challengeId: number) {
@@ -18,7 +18,7 @@ export default function useChallengesApi() {
     });
   }
 
-  async function create(shortCode: string, data: { name: string; content?: string | null; previousChallengeId?: number | null }) {
+  async function create(shortCode: string, data: { name: string; content?: string | null; previousChallengeId?: number | null; isBonus?: boolean }) {
     const response = await useFetch<Challenge>(`/api/hunts/${shortCode}/challenges`, {
       method: "POST",
       body: data,
@@ -27,7 +27,7 @@ export default function useChallengesApi() {
     return response;
   }
 
-  async function update(shortCode: string, challengeId: number, data: { name?: string; content?: string }) {
+  async function update(shortCode: string, challengeId: number, data: { name?: string; content?: string; isBonus?: boolean }) {
     const response = await useFetch<Challenge>(`/api/hunts/${shortCode}/challenges/${challengeId}`, {
       method: "PATCH",
       body: data,

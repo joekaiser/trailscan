@@ -1,6 +1,6 @@
-import { AnyPgColumn, boolean, index, integer, numeric, pgEnum, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
-
+import { boolean, index, integer, numeric, pgEnum, pgTable, serial, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 export const hunts = pgTable("hunts", {
   id: serial("id").primaryKey(),
@@ -21,6 +21,7 @@ export const challenges = pgTable("challenges", {
   order: integer("order").default(0),
   previousChallengeId: integer("previous_challenge_id").references((): AnyPgColumn => challenges.id, { onDelete: "restrict" }),
   publicId: varchar("public_id", { length: 255 }).notNull(),
+  isBonus: boolean("is_bonus").default(false),
 }, table => [
   index("challenges_hunt_id_idx").on(table.huntId),
   index("challenges_previous_challenge_id_idx").on(table.previousChallengeId),
@@ -56,4 +57,3 @@ export type Player = typeof players.$inferSelect;
 export type NewPlayer = typeof players.$inferInsert;
 export type PlayerChallenge = typeof playerChallenges.$inferSelect;
 export type NewPlayerChallenge = typeof playerChallenges.$inferInsert;
-

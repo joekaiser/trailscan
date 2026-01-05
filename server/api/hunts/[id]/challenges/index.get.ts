@@ -1,4 +1,5 @@
-import { eq, } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+
 import { db } from "~server/db";
 import { challenges, hunts } from "~server/db/schema";
 
@@ -15,6 +16,18 @@ export default defineEventHandler(async (event) => {
   }
   const huntId = hunt[0].id;
 
-  const data = await db.select().from(challenges).where(eq(challenges.huntId, huntId)).orderBy(challenges.order);
-  return data;
+  // Return all challenges - regular ones ordered by order, bonus codes at the end
+  // Frontend will filter/separate them based on isBonus field
+  const data = await db.select().from(challenges).where(eq(challenges.huntId, huntId));
+
+  // Sort: regular challenges by order, then bonus codes
+  return data.sort((a, b) => {
+    if (a.isBonus && !b.isBonus)
+      return 1;
+    if (!a.isBonus && b.isBonus)
+      return -1;
+    if (a.isBonus && b.isBonus)
+      return 0; // Bonus codes maintain creation order
+    return (a.order ?? 0) - (b.order ?? 0);
+  });
 });

@@ -1,12 +1,13 @@
 import { and, eq } from "drizzle-orm";
+
 import { db } from "~server/db";
 import { challenges, hunts } from "~server/db/schema";
 
 export default defineEventHandler(async (event) => {
-  const updateData = await readBody<{ name?: string; content?: string }>(event);
+  const updateData = await readBody<{ name?: string; content?: string; isBonus?: boolean }>(event);
   const params = getRouterParams(event);
   const shortCode = params.id;
-  const challengeId = parseInt(params.challengeId);
+  const challengeId = Number.parseInt(params.challengeId);
 
   if (isNaN(challengeId)) {
     throw createError({
@@ -36,8 +37,8 @@ export default defineEventHandler(async (event) => {
   const challenge = await db.select().from(challenges).where(
     and(
       eq(challenges.id, challengeId),
-      eq(challenges.huntId, huntId)
-    )
+      eq(challenges.huntId, huntId),
+    ),
   );
 
   if (!challenge || challenge.length === 0) {
@@ -48,12 +49,15 @@ export default defineEventHandler(async (event) => {
   }
 
   // Build update object
-  const updateValues: { name?: string; content?: string } = {};
+  const updateValues: { name?: string; content?: string; isBonus?: boolean } = {};
   if (updateData.name !== undefined) {
     updateValues.name = updateData.name.trim();
   }
   if (updateData.content !== undefined) {
     updateValues.content = updateData.content.trim() || null;
+  }
+  if (updateData.isBonus !== undefined) {
+    updateValues.isBonus = updateData.isBonus;
   }
 
   // Update the challenge
@@ -64,4 +68,3 @@ export default defineEventHandler(async (event) => {
 
   return updated[0];
 });
-

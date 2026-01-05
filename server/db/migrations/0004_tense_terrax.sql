@@ -1,0 +1,1 @@
+ALTER TABLE "challenges" ADD COLUMN "is_bonus" boolean DEFAULT false;
