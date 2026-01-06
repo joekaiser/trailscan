@@ -21,14 +21,15 @@ const { data: challengeData, error: challengeError } = await useFetch<Challenge>
   `/api/challenges/by-public-id/${publicId}`,
   {
     key: `challenge-${publicId}`,
-  }
+  },
 );
 
 if (challengeError.value) {
   errorMessage.value = challengeError.value.message || "Failed to load challenge";
   isLoading.value = false;
   isCheckingIn.value = false;
-} else if (challengeData.value) {
+}
+else if (challengeData.value) {
   challenge.value = challengeData.value;
 
   // Get huntId from challenge to check cookie
@@ -37,7 +38,8 @@ if (challengeError.value) {
     errorMessage.value = "Challenge is not associated with a hunt";
     isLoading.value = false;
     isCheckingIn.value = false;
-  } else {
+  }
+  else {
     // Check if player is registered
     const cookieKey = `Trailhunt:${huntId}`;
     const playerCookie = useCookie<string | null>(cookieKey, {
@@ -47,14 +49,16 @@ if (challengeError.value) {
     if (!playerCookie.value) {
       // Not registered, redirect to start page
       await navigateTo(`/game/${huntId}/start`);
-    } else {
+    }
+    else {
       // Parse player data
       let playerData: { huntId: number; playerId: number; playerName: string } | null = null;
       try {
-        playerData = typeof playerCookie.value === 'string'
+        playerData = typeof playerCookie.value === "string"
           ? JSON.parse(playerCookie.value)
           : playerCookie.value;
-      } catch (e) {
+      }
+      catch (e) {
         errorMessage.value = "Invalid player cookie";
         isLoading.value = false;
         isCheckingIn.value = false;
@@ -76,16 +80,29 @@ if (challengeError.value) {
         isCheckingIn.value = false;
 
         if (checkinError.value) {
-          errorMessage.value = checkinError.value.message || "Failed to check in";
-        } else if (checkinData.value) {
+          // Check if this is an out-of-order scan error
+          const isOutOfOrderError = checkinError.value.statusCode === 400
+            && (checkinError.value.message?.includes("incorrect code")
+              || checkinError.value.message?.includes("in order"));
+
+          if (isOutOfOrderError) {
+            errorMessage.value = "Oops! You scanned this code out of order. Please scan the challenges in sequence, starting with the first one.";
+          }
+          else {
+            errorMessage.value = checkinError.value.message || "Failed to check in";
+          }
+        }
+        else if (checkinData.value) {
           checkinResult.value = checkinData.value;
         }
-      } else {
+      }
+      else {
         await navigateTo(`/game/${huntId}/start`);
       }
     }
   }
-} else {
+}
+else {
   isLoading.value = false;
   isCheckingIn.value = false;
 }
@@ -97,20 +114,28 @@ if (challengeError.value) {
       <CardContent class="pt-6">
         <div class="flex flex-col items-center justify-center space-y-4">
           <Spinner />
-          <p class="text-muted-foreground">Loading challenge...</p>
+          <p class="text-muted-foreground">
+            Loading challenge...
+          </p>
         </div>
       </CardContent>
     </Card>
 
     <Card v-else-if="errorMessage">
       <CardHeader>
-        <CardTitle>Error</CardTitle>
+        <CardTitle>{{ errorMessage.includes("out of order") ? "Not Quite Right!" : "Error" }}</CardTitle>
         <CardDescription>{{ errorMessage }}</CardDescription>
       </CardHeader>
       <CardContent>
-        <Button v-if="challenge?.huntId" @click="router.push(`/game/${challenge.huntId}/start`)">
-          Go to Start Page
-        </Button>
+        <div class="space-y-4">
+          <p v-if="errorMessage.includes('out of order')" class="text-muted-foreground">
+            Don't worry! Just make sure you're scanning the challenges in the correct sequence.
+            Check your previous clues to find the next challenge in order.
+          </p>
+          <Button v-if="challenge?.huntId" @click="router.push(`/game/${challenge.huntId}/start`)">
+            Go to Start Page
+          </Button>
+        </div>
       </CardContent>
     </Card>
 
@@ -124,7 +149,9 @@ if (challengeError.value) {
       <CardContent>
         <div v-if="isCheckingIn" class="flex flex-col items-center justify-center space-y-4 py-8">
           <Spinner />
-          <p class="text-muted-foreground">Processing your check-in...</p>
+          <p class="text-muted-foreground">
+            Processing your check-in...
+          </p>
         </div>
 
         <div v-else-if="checkinResult">
@@ -133,35 +160,51 @@ if (challengeError.value) {
               You have already checked into this challenge.
             </p>
             <div class="rounded-lg bg-muted p-4">
-              <p class="text-sm font-medium">Total Points</p>
-              <p class="text-2xl font-bold">{{ checkinResult.totalPoints }}</p>
+              <p class="text-sm font-medium">
+                Total Points
+              </p>
+              <p class="text-2xl font-bold">
+                {{ checkinResult.totalPoints }}
+              </p>
             </div>
           </div>
 
           <div v-else class="space-y-4">
             <div class="rounded-lg bg-primary/10 p-4">
-              <p class="text-sm font-medium text-primary">Check-in Successful!</p>
-              <p class="text-2xl font-bold text-primary">+{{ checkinResult.pointsAwarded }} points</p>
+              <p class="text-sm font-medium text-primary">
+                Check-in Successful!
+              </p>
+              <p class="text-2xl font-bold text-primary">
+                +{{ checkinResult.pointsAwarded }} points
+              </p>
               <p v-if="checkinResult.position" class="text-sm text-muted-foreground mt-2">
                 You were the {{ checkinResult.position }}{{
-                  checkinResult.position === 1 ? 'st' :
-                    checkinResult.position === 2 ? 'nd' :
-                      checkinResult.position === 3 ? 'rd' : 'th'
+  checkinResult.position === 1 ? 'st'
+    : checkinResult.position === 2 ? 'nd'
+      : checkinResult.position === 3 ? 'rd' : 'th'
                 }} person to check in!
               </p>
             </div>
 
             <div class="rounded-lg bg-muted p-4">
-              <p class="text-sm font-medium">Total Points</p>
-              <p class="text-2xl font-bold">{{ checkinResult.totalPoints }}</p>
+              <p class="text-sm font-medium">
+                Total Points
+              </p>
+              <p class="text-2xl font-bold">
+                {{ checkinResult.totalPoints }}
+              </p>
             </div>
           </div>
         </div>
 
         <div v-if="challenge.content" class="mt-6 pt-6 border-t">
-          <h3 class="text-lg font-semibold mb-2">The next clue is...</h3>
+          <h3 class="text-lg font-semibold mb-2">
+            The next clue is...
+          </h3>
           <div class="prose prose-sm max-w-none">
-            <p class="whitespace-pre-wrap">{{ challenge.content }}</p>
+            <p class="whitespace-pre-wrap">
+              {{ challenge.content }}
+            </p>
           </div>
         </div>
       </CardContent>
