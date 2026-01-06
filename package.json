@@ -3,6 +3,7 @@
   "type": "module",
   "version": "1.0.2",
   "license": "MIT",
+  "start": "node .output/server/index.mjs",
   "main": "./nuxt.config.ts",
   "files": [
     "app.vue",
