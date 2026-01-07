@@ -1,4 +1,5 @@
 import type { Hunt } from "~server/db/schema";
+
 const KEYS = {
   DETAIL: (shortCode: string) => `hunts-${shortCode}`,
   DETAIL_BY_ID: (id: number) => `hunts-by-id-${id}`,
@@ -26,6 +27,14 @@ export default function useHuntsApi() {
     return response;
   }
 
+  async function update(shortCode: string, data: { name?: string; guidelines?: string | null }) {
+    const response = await useFetch<Hunt>(`/api/hunts/${shortCode}`, {
+      method: "PATCH",
+      body: data,
+    });
+    await refreshShowDetail(shortCode);
+    return response;
+  }
 
   // async function refreshList() {
   //   return await refreshNuxtData(KEYS.LIST());
@@ -39,6 +48,7 @@ export default function useHuntsApi() {
     getByShortCode,
     getById,
     create,
+    update,
     refreshShowDetail,
   };
 }

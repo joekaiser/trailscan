@@ -67,7 +67,9 @@ async function generateStartPageQRCode() {
 
 // Split challenges into regular and bonus
 const regularChallenges = computed(() => {
-  return challenges.value?.filter(c => !c.isBonus) ?? [];
+  const regular = challenges.value?.filter(c => !c.isBonus) ?? [];
+  // ignore frist challenge since it's shown as the initial clue
+  return regular.filter(c => c.order !== 0 && c.order !== null);
 });
 
 const bonusChallenges = computed(() => {

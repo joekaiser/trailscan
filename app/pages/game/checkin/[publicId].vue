@@ -199,7 +199,7 @@ else {
 
         <div v-if="challenge.content" class="mt-6 pt-6 border-t">
           <h3 class="text-lg font-semibold mb-2">
-            The next clue is...
+            {{ challenge.name }}
           </h3>
           <div class="prose prose-sm max-w-none">
             <p class="whitespace-pre-wrap">

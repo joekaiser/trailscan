@@ -4,7 +4,8 @@ import type { Challenge } from "~server/db/schema";
 const { id } = useRoute().params;
 const shortCode = id as string;
 
-const { data: hunt, refresh: refreshHunt, error: huntError, pending: huntLoading } = await useHuntsApi().getByShortCode(shortCode);
+const huntsApi = useHuntsApi();
+const { data: hunt, refresh: refreshHunt, error: huntError, pending: huntLoading } = await huntsApi.getByShortCode(shortCode);
 const challengesApi = useChallengesApi();
 const { data: challenges, refresh: refreshChallenges, error: challengesError, pending: challengesLoading } = await challengesApi.list(shortCode);
 
@@ -160,6 +161,32 @@ const regularChallenges = computed(() => {
 const bonusChallenges = computed(() => {
   return challenges.value?.filter(c => c.isBonus) ?? [];
 });
+
+// Guidelines form state
+const guidelinesText = ref("");
+const isSavingGuidelines = ref(false);
+
+watch(() => hunt.value, (newHunt) => {
+  if (newHunt) {
+    guidelinesText.value = newHunt.guidelines ?? "";
+  }
+}, { immediate: true });
+
+async function handleSaveGuidelines() {
+  if (!hunt.value)
+    return;
+
+  isSavingGuidelines.value = true;
+  const { error } = await huntsApi.update(shortCode, {
+    guidelines: guidelinesText.value.trim() || null,
+  });
+
+  if (!error.value) {
+    await refreshHunt();
+  }
+
+  isSavingGuidelines.value = false;
+}
 </script>
 
 <template>
@@ -200,6 +227,17 @@ const bonusChallenges = computed(() => {
             <NuxtLink :to="`/hunts/${shortCode}/prints`">
               Print QR Codes
             </NuxtLink>
+          </div>
+          <div class="space-y-2 pt-4 border-t">
+            <Label for="guidelines">Guidelines</Label>
+            <Textarea id="guidelines" v-model="guidelinesText"
+              placeholder="Enter guidelines for players (displayed on registration page)" rows="6" />
+            <div class="flex justify-end">
+              <Button :disabled="isSavingGuidelines" @click="handleSaveGuidelines">
+                <span v-if="isSavingGuidelines">Saving...</span>
+                <span v-else>Save Guidelines</span>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

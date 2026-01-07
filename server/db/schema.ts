@@ -9,6 +9,7 @@ export const hunts = pgTable("hunts", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   isDeleted: boolean("is_deleted").default(false),
   shortCode: varchar("short_code", { length: 255 }).notNull(),
+  guidelines: text("guidelines"),
 }, table => [
   uniqueIndex("hunts_short_code_idx").on(table.shortCode),
 ]);
