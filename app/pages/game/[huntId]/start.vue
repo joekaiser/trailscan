@@ -169,6 +169,10 @@ async function handleSubmit() {
             <Input id="player-name" v-model="playerName" placeholder="Enter your name" class="w-full"
               :disabled="isSubmitting" required />
           </div>
+          <Button type="submit" class="w-full" :disabled="isSubmitting || !playerName.trim()">
+            <span v-if="isSubmitting">Creating...</span>
+            <span v-else>Start</span>
+          </Button>
           <div v-if="hunt?.guidelines" class="rounded-lg bg-muted p-4 space-y-2">
             <h3 class="text-lg font-semibold">
               Guidelines
@@ -182,11 +186,6 @@ async function handleSubmit() {
           <div v-if="errorMessage" class="text-sm text-destructive">
             {{ errorMessage }}
           </div>
-
-          <Button type="submit" class="w-full" :disabled="isSubmitting || !playerName.trim()">
-            <span v-if="isSubmitting">Creating...</span>
-            <span v-else>Start</span>
-          </Button>
         </form>
         <div v-else class="space-y-4">
           <div v-if="isLoadingFirstChallenge" class="flex items-center justify-center py-4">
