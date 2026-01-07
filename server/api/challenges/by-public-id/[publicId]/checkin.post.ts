@@ -108,7 +108,8 @@ export default defineEventHandler(async (event) => {
   // Skip order validation for bonus codes - they can be scanned at any time
   if (!(challengeData as { isBonus?: boolean }).isBonus) {
     // Check if player is checking in out of order
-    // Get all challenges the player has checked into, ordered by challenge order
+    // Get all NON-BONUS challenges the player has checked into, ordered by challenge order
+    // Bonus challenges should not affect the order sequence
     const playerCheckins = await db
       .select({
         challengeId: playerChallenges.currentChallengeId,
@@ -116,7 +117,12 @@ export default defineEventHandler(async (event) => {
       })
       .from(playerChallenges)
       .innerJoin(challenges, eq(playerChallenges.currentChallengeId, challenges.id))
-      .where(eq(playerChallenges.playerId, playerData.playerId))
+      .where(
+        and(
+          eq(playerChallenges.playerId, playerData.playerId),
+          eq(challenges.isBonus, false),
+        ),
+      )
       .orderBy(desc(challenges.order))
       .limit(1);
 
@@ -153,24 +159,28 @@ export default defineEventHandler(async (event) => {
 
   const position = (checkinCount[0]?.count ?? 0) + 1;
 
-  let pointsAwarded = 10;
+  // Roll two "dice" - creates natural bell curve with variance
+  const die1 = Math.floor(Math.random() * 6) + 1; // 1-6
+  const die2 = Math.floor(Math.random() * 6) + 1; // 1-6
+  let pointsAwarded = die1 + die2 + 5; // 7-17 range, weighted toward middle (~12)
 
-  // 1% chance you get an extra 3 points
-  // 2% chance you get an extra point
-  // .5% chance you lose 1 point
+  // Rare multipliers
+  const multiplierRoll = Math.random();
+  if (multiplierRoll < 0.01) {
+    // 1% chance: Double points!
+    pointsAwarded *= 2;
+  }
+  else if (multiplierRoll < 0.03) {
+    // 2% chance: 1.5x multiplier
+    pointsAwarded = Math.floor(pointsAwarded * 1.5);
+  }
+  else if (multiplierRoll < 0.05) {
+    // 2% chance: 0.5x penalty
+    pointsAwarded = Math.floor(pointsAwarded * 0.5);
+  }
 
-  // these stack
-
-  const random = Math.random();
-  if (random < 0.01) {
-    pointsAwarded += 2;
-  }
-  if (random < 0.03) {
-    pointsAwarded += 1;
-  }
-  if (random < 0.005) {
-    pointsAwarded -= 1;
-  }
+  // Clamp between 7 and 18
+  pointsAwarded = Math.max(7, Math.min(18, pointsAwarded));
 
   // Create check-in record
   await db.insert(playerChallenges).values({
