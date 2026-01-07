@@ -1,6 +1,7 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+
 import { db } from "~server/db";
-import { hunts, players, NewPlayer } from "~server/db/schema";
+import { challenges, hunts, playerChallenges, players } from "~server/db/schema";
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ name: string }>(event);
@@ -28,7 +29,39 @@ export default defineEventHandler(async (event) => {
     name: body.name.trim(),
   }).returning();
 
+  const playerId = newPlayer[0]!.id;
+
+  // Find the first challenge (order=0 or null, non-bonus) and automatically check it in
+  const allChallenges = await db
+    .select()
+    .from(challenges)
+    .where(
+      and(
+        eq(challenges.huntId, huntId),
+        eq(challenges.isBonus, false),
+      ),
+    );
+
+  // Find the first challenge (order=0 or null, sorted by order)
+  const firstChallenge = allChallenges
+    .filter(c => c.order === 0 || c.order === null)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))[0];
+
+  if (firstChallenge) {
+    const challengeId = firstChallenge.id;
+
+    // Create check-in record for first challenge
+    await db.insert(playerChallenges).values({
+      playerId,
+      currentChallengeId: challengeId,
+    });
+
+    // Update player score
+    await db
+      .update(players)
+      .set({ score: 0 })
+      .where(eq(players.id, playerId));
+  }
 
   return newPlayer[0];
 });
-
