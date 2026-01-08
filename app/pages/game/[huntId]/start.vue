@@ -165,9 +165,9 @@ async function handleSubmit() {
       <CardContent>
         <form v-if="!isRegistered" class="space-y-4" @submit.prevent="handleSubmit">
           <div class="space-y-2">
-            <Label for="player-name">Your Name</Label>
-            <Input id="player-name" v-model="playerName" placeholder="Enter your name" class="w-full"
-              :disabled="isSubmitting" required />
+            <Label for="player-name">First Name & Last Initial</Label>
+            <Input id="player-name" v-model="playerName" placeholder="John D" class="w-full" :disabled="isSubmitting"
+              required />
           </div>
           <Button type="submit" class="w-full" :disabled="isSubmitting || !playerName.trim()">
             <span v-if="isSubmitting">Creating...</span>
