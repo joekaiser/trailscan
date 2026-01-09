@@ -41,7 +41,7 @@ else if (challengeData.value) {
   }
   else {
     // Check if player is registered
-    const cookieKey = `Trailhunt:${huntId}`;
+    const cookieKey = `th:${huntId}`;
     const playerCookie = useCookie<string | null>(cookieKey, {
       maxAge: 60 * 60 * 24 * 365,
     });

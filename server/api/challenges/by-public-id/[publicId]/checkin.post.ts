@@ -37,7 +37,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Get player cookie for this hunt
-  const cookieKey = `Trailhunt:${huntId}`;
+  const cookieKey = `th:${huntId}`;
   const playerCookieValue = cookies[cookieKey];
 
   if (!playerCookieValue) {

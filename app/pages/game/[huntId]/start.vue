@@ -42,7 +42,7 @@ function checkExistingRegistration() {
     return;
 
   // Check for existing player cookie for this hunt
-  const cookieKey = `Trailhunt:${hunt.value.id}`;
+  const cookieKey = `th:${hunt.value.id}`;
   const playerCookie = useCookie<string | null>(cookieKey, {
     maxAge: 60 * 60 * 24 * 365,
   });
@@ -116,8 +116,8 @@ async function handleSubmit() {
   }
 
   if (data.value) {
-    // Store Trailhunt:huntId cookie (huntId is the integer ID from DB)
-    const cookieKey = `Trailhunt:${hunt.value.id}`;
+    // Store th:huntId cookie (huntId is the integer ID from DB)
+    const cookieKey = `th:${hunt.value.id}`;
     const playerCookie = useCookie<string | null>(cookieKey, {
       maxAge: 60 * 60 * 24 * 365, // 1 year
     });
