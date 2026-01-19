@@ -74,9 +74,14 @@ export default defineEventHandler(async (event) => {
     .limit(1);
 
   if (!player || player.length === 0) {
+    // Player not found - delete the invalid cookie
+    setCookie(event, cookieKey, "", {
+      maxAge: 0,
+      path: "/",
+    });
     throw createError({
       statusCode: 404,
-      statusMessage: "Player not found",
+      statusMessage: "Player not found. Please register again.",
     });
   }
 

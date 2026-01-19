@@ -37,7 +37,7 @@ async function loadFirstChallenge() {
 }
 
 // Check if player is already registered for this hunt
-function checkExistingRegistration() {
+async function checkExistingRegistration() {
   if (!hunt.value)
     return;
 
@@ -64,6 +64,25 @@ function checkExistingRegistration() {
 
       // Validate parsed data has required fields
       if (parsed && typeof parsed === "object" && "huntId" in parsed && "playerId" in parsed && "playerName" in parsed) {
+        // Validate that the player actually exists in the database
+        const { data, error } = await playersApi.validatePlayer(parsed.playerId);
+
+        if (error.value || !data.value) {
+          // Player doesn't exist - delete the invalid cookie
+          playerCookie.value = null;
+          isRegistered.value = false;
+          return;
+        }
+
+        // Verify the player belongs to this hunt
+        if (data.value.huntId !== hunt.value.id) {
+          // Player belongs to a different hunt - delete the cookie
+          playerCookie.value = null;
+          isRegistered.value = false;
+          return;
+        }
+
+        // Player exists and belongs to this hunt
         playerInfo.value = parsed;
         isRegistered.value = true;
       }
@@ -71,9 +90,9 @@ function checkExistingRegistration() {
         isRegistered.value = false;
       }
     }
-    catch (e) {
-      console.error("Error parsing player cookie:", e);
-      // Invalid cookie, ignore
+    catch {
+      // Invalid cookie, delete it
+      playerCookie.value = null;
       isRegistered.value = false;
     }
   }

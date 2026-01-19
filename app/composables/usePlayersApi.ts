@@ -36,10 +36,18 @@ export default function usePlayersApi() {
     return response;
   }
 
+  async function validatePlayer(playerId: number) {
+    const response = await useFetch<Pick<Player, "id" | "name" | "huntId">>(
+      `/api/players/${playerId}`,
+    );
+    return response;
+  }
+
   return {
     create,
     getLeaderboard,
     resetAll,
     chooseWinner,
+    validatePlayer,
   };
 }

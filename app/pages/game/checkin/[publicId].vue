@@ -58,7 +58,7 @@ else if (challengeData.value) {
           ? JSON.parse(playerCookie.value)
           : playerCookie.value;
       }
-      catch (e) {
+      catch {
         errorMessage.value = "Invalid player cookie";
         isLoading.value = false;
         isCheckingIn.value = false;
@@ -80,16 +80,25 @@ else if (challengeData.value) {
         isCheckingIn.value = false;
 
         if (checkinError.value) {
-          // Check if this is an out-of-order scan error
-          const isOutOfOrderError = checkinError.value.statusCode === 400
-            && (checkinError.value.message?.includes("incorrect code")
-              || checkinError.value.message?.includes("in order"));
-
-          if (isOutOfOrderError) {
-            errorMessage.value = "Oops! You scanned this code out of order. Please scan the challenges in sequence, starting with the first one.";
+          // Check if player not found (404) - cookie is invalid, delete it and redirect
+          if (checkinError.value.statusCode === 404 && checkinError.value.message?.includes("Player not found")) {
+            // Delete the invalid cookie
+            playerCookie.value = null;
+            // Redirect to start page to re-register
+            await navigateTo(`/game/${huntId}/start`);
           }
           else {
-            errorMessage.value = checkinError.value.message || "Failed to check in";
+            // Check if this is an out-of-order scan error
+            const isOutOfOrderError = checkinError.value.statusCode === 400
+              && (checkinError.value.message?.includes("incorrect code")
+                || checkinError.value.message?.includes("in order"));
+
+            if (isOutOfOrderError) {
+              errorMessage.value = "Oops! You scanned this code out of order. Please scan the challenges in sequence, starting with the first one.";
+            }
+            else {
+              errorMessage.value = checkinError.value.message || "Failed to check in";
+            }
           }
         }
         else if (checkinData.value) {
