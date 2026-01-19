@@ -14,14 +14,21 @@ export default function usePlayersApi() {
       `/api/hunts/by-id/${huntId}/leaderboard`,
       {
         key: `leaderboard-${huntId}`,
-      }
+      },
     );
+    return response;
+  }
+
+  async function resetAll(shortCode: string) {
+    const response = await useFetch<{ success: boolean }>(`/api/hunts/${shortCode}/players`, {
+      method: "DELETE",
+    });
     return response;
   }
 
   return {
     create,
     getLeaderboard,
+    resetAll,
   };
 }
-

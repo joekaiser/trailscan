@@ -8,6 +8,7 @@ const huntsApi = useHuntsApi();
 const { data: hunt, refresh: refreshHunt, error: huntError, pending: huntLoading } = await huntsApi.getByShortCode(shortCode);
 const challengesApi = useChallengesApi();
 const { data: challenges, refresh: refreshChallenges, error: challengesError, pending: challengesLoading } = await challengesApi.list(shortCode);
+const playersApi = usePlayersApi();
 
 async function copyShortCode() {
   if (hunt.value?.shortCode && typeof window !== "undefined") {
@@ -187,6 +188,22 @@ async function handleSaveGuidelines() {
 
   isSavingGuidelines.value = false;
 }
+
+const isResettingGame = ref(false);
+
+async function handleResetGame() {
+  if (!hunt.value)
+    return;
+
+  isResettingGame.value = true;
+  const { error } = await playersApi.resetAll(shortCode);
+
+  if (!error.value) {
+    await refreshHunt();
+  }
+
+  isResettingGame.value = false;
+}
 </script>
 
 <template>
@@ -237,6 +254,21 @@ async function handleSaveGuidelines() {
                 <span v-if="isSavingGuidelines">Saving...</span>
                 <span v-else>Save Guidelines</span>
               </Button>
+            </div>
+          </div>
+          <div class="space-y-2 pt-4 border-t">
+            <div class="space-y-2">
+              <Label>Reset Game</Label>
+              <p class="text-sm text-muted-foreground">
+                Delete all players and their scores for this hunt. Challenges will remain intact.
+              </p>
+            </div>
+            <div class="flex justify-end">
+              <ConfirmButton :disabled="isResettingGame" variant="destructive" confirm-text="Reset game?"
+                @confirm="handleResetGame">
+                <span v-if="isResettingGame">Resetting...</span>
+                <span v-else>Reset Game</span>
+              </ConfirmButton>
             </div>
           </div>
         </CardContent>
