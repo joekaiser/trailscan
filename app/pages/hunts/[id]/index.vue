@@ -94,6 +94,15 @@ async function handleDelete(challengeId: number) {
   }
 }
 
+// Split challenges into regular and bonus
+const regularChallenges = computed(() => {
+  return challenges.value?.filter(c => !c.isBonus) ?? [];
+});
+
+const bonusChallenges = computed(() => {
+  return challenges.value?.filter(c => c.isBonus) ?? [];
+});
+
 async function handleMoveUp(index: number) {
   const regular = regularChallenges.value;
   if (!regular || index === 0)
@@ -154,15 +163,6 @@ async function handleMoveDown(index: number) {
   }
 }
 
-// Split challenges into regular and bonus
-const regularChallenges = computed(() => {
-  return challenges.value?.filter(c => !c.isBonus) ?? [];
-});
-
-const bonusChallenges = computed(() => {
-  return challenges.value?.filter(c => c.isBonus) ?? [];
-});
-
 // Guidelines form state
 const guidelinesText = ref("");
 const isSavingGuidelines = ref(false);
@@ -203,6 +203,25 @@ async function handleResetGame() {
   }
 
   isResettingGame.value = false;
+}
+
+const isChoosingWinner = ref(false);
+const winnerDialogOpen = ref(false);
+const winner = ref<{ id: number; name: string; score: number } | null>(null);
+
+async function handleChooseWinner() {
+  if (!hunt.value)
+    return;
+
+  isChoosingWinner.value = true;
+  const { data, error } = await playersApi.chooseWinner(hunt.value.id);
+
+  if (!error.value && data.value) {
+    winner.value = data.value;
+    winnerDialogOpen.value = true;
+  }
+
+  isChoosingWinner.value = false;
 }
 </script>
 
@@ -269,6 +288,20 @@ async function handleResetGame() {
                 <span v-if="isResettingGame">Resetting...</span>
                 <span v-else>Reset Game</span>
               </ConfirmButton>
+            </div>
+          </div>
+          <div class="space-y-2 pt-4 border-t">
+            <div class="space-y-2">
+              <Label>Choose a Winner</Label>
+              <p class="text-sm text-muted-foreground">
+                Randomly select a winner from players who have completed the last challenge.
+              </p>
+            </div>
+            <div class="flex justify-end">
+              <Button :disabled="isChoosingWinner" @click="handleChooseWinner">
+                <span v-if="isChoosingWinner">Choosing...</span>
+                <span v-else>Choose a Winner</span>
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -544,6 +577,33 @@ async function handleResetGame() {
           </ItemGroup>
         </CardContent>
       </Card>
+
+      <!-- Winner Dialog -->
+      <Dialog v-model:open="winnerDialogOpen">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Winner Selected!</DialogTitle>
+            <DialogDescription>
+              A winner has been randomly chosen from players who completed the last challenge.
+            </DialogDescription>
+          </DialogHeader>
+          <div v-if="winner" class="py-4">
+            <div class="text-center space-y-2">
+              <p class="text-2xl font-bold">
+                {{ winner.name }}
+              </p>
+              <p class="text-muted-foreground">
+                Score: {{ winner.score }}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button @click="winnerDialogOpen = false">
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   </div>
 </template>

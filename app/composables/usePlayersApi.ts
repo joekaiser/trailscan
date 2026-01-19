@@ -26,9 +26,20 @@ export default function usePlayersApi() {
     return response;
   }
 
+  async function chooseWinner(huntId: number) {
+    const response = await useFetch<Pick<Player, "id" | "name" | "score">>(
+      `/api/hunts/by-id/${huntId}/choose-winner`,
+      {
+        method: "POST",
+      },
+    );
+    return response;
+  }
+
   return {
     create,
     getLeaderboard,
     resetAll,
+    chooseWinner,
   };
 }
